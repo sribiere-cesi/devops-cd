@@ -4,7 +4,7 @@ import pika
 
 app = Flask(__name__)
 # Configuration de la base de données
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://user:password@orders-db:3306/orders'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:polop@orders-db:3306/orders'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -42,5 +42,6 @@ def add_order():
 
 
 if __name__ == '__main__':
-    db.create_all()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    with app.app_context():
+        db.create_all()
+        app.run(debug=True, host='0.0.0.0', port=5000)

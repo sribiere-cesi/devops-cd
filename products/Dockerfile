@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Installer les dépendances
-RUN pip install Flask SQLAlchemy pymysql pika json
+RUN pip install Flask SQLAlchemy pymysql pika json flask_sqlalchemy
 
 # Exposer le port utilisé par l'application
 EXPOSE 5000
