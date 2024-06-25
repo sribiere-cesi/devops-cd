@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-orders-db-secret
+  namespace: mysql
+type: Opaque
+data:
+  mysql-root-password: cG9sb3A=
+  mysql-password: cG9sb3A=
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-orders-pvc
+  namespace: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: mysql
+  name: mysql-orders
+spec:
+  selector:
+    matchLabels:
+      app: mysql-orders
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql-orders
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-orders-db-secret
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              value: orders-db
+            - name: MYSQL_USER
+              value: user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-orders-db-secret
+                  key: mysql-password
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-orders-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-orders-service
+  namespace: mysql
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: mysql-orders
+  type: ClusterIP

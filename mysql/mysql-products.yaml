@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-products-db-secret
+  namespace: mysql
+type: Opaque
+data:
+  mysql-root-password: cG9sb3A=
+  mysql-password: cG9sb3A=
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-products-pvc
+  namespace: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-products
+  namespace: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql-products
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql-products
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-products-db-secret
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              value: products-db
+            - name: MYSQL_USER
+              value: user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-products-db-secret
+                  key: mysql-password
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-products-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-products-service
+  namespace: mysql
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: mysql-products
+  type: ClusterIP

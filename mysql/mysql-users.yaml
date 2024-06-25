@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-users-db-secret
+  namespace: mysql
+type: Opaque
+data:
+  mysql-root-password: cG9sb3A=
+  mysql-password: cG9sb3A=
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-users-pvc
+  namespace: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-users
+  namespace: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql-users
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql-users
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-users-db-secret
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              value: users-db
+            - name: MYSQL_USER
+              value: user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-users-db-secret
+                  key: mysql-password
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-users-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-users-service
+  namespace: mysql
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: mysql-users
+  type: ClusterIP
